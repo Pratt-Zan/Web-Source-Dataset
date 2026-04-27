@@ -1,9 +1,6 @@
 # Web-Source-Dataset
 This project is for the code structure for monthly update of the source in Public com's page source in text.
 ----
-Here’s a clean, professional README (Markdown) based on your code. You can paste this directly into a `README.md` file:
-
----
 
 # 🌐 Iterative Website Crawler with Incremental Text Storage
 
