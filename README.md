@@ -616,7 +616,7 @@ The system is designed to handle common real-world issues:
 
 ---
 
-# 🌐 Part-2: High-Performance Web Text Extraction with Incremental Storage
+# 🌐 Part-2: Web Text Extraction with Incremental Storage
 
 ## Overview
 
@@ -924,15 +924,3 @@ The system accounts for common runtime issues:
 
 * **Site-Level Isolation**
   Errors in one site do not interrupt others
-
-If you want next step, I strongly recommend this (and I can do it for you):
-
-👉 Merge all three modules into a **single “End-to-End Pipeline README”** with a diagram like:
-
-```
-Sitemap Crawler → URL Database → Text Extractor → Text Database → (Your ESG / PIN Research)
-```
-
-That version would look *much closer to a publishable research appendix or GitHub portfolio project*.
-
-
