@@ -1,5 +1,7 @@
 # Web-Source-Dataset
-This project is for the code structure for monthly update of the source in Public com's page source in text.
+This project is for the code structure for monthly update of the source in Public com's page source in text. The structure for the whole code can be seperated into 2 parts: THE ITER SEARCH / THE SITEMAP. In words, the iter search is from the idea that we can find each url in layers and scrap them in order, and the deeper the more. While sitemap can give you a direct set of urls in advance, which will also update daily. Both methods have advantages, Iter Search is available in all cases but is not sufficient, and slower, while sitemap is very full but may not work in certain domains (it is very reliable but just not 100%) . For database construction I recommend using sitemap first, and adjust for the second round.
+
+Here below I will show the details of 2 methods and start with ITER SEARCH.
 
 ----
 
@@ -330,7 +332,7 @@ This ensures robustness in real-world web environments where failures are common
 
 ---
 
-# 🌐 Sitemap-Based URL Discovery with Incremental Updates
+# 🌐 Part-1: Sitemap-Based URL Discovery with Incremental Updates
 
 ## Overview
 
@@ -609,4 +611,328 @@ The system is designed to handle common real-world issues:
 
 * **Site-level failure isolation**
   Errors in one site do not affect others
+
+  Here is the **third module README (Text Extraction Layer)**, written in the same detailed, consistent style as the previous two. This one fits as the **final stage in your pipeline (URL → Text)**.
+
+---
+
+# 🌐 Part-2: High-Performance Web Text Extraction with Incremental Storage
+
+## Overview
+
+This module implements a **high-performance text extraction engine** that converts a pre-collected set of URLs into a structured **plain-text database**. It is designed as the **final stage of a multi-step web data pipeline**, where:
+
+1. URLs are first discovered (e.g., via sitemap crawling)
+2. Then processed here to extract **human-readable textual content**
+
+The system emphasizes **speed, scalability, and incremental updates**, making it suitable for large-scale data collection tasks such as:
+
+* Corporate disclosure analysis
+* ESG / sustainability text mining
+* Financial communication research
+* Longitudinal website monitoring
+
+A key design goal is to avoid redundant work. Therefore, the system maintains a **persistent historical text database**, allowing it to:
+
+* Skip already processed URLs in **O(1) time**
+* Only extract text from **previously unseen pages**
+* Generate a **monthly (or periodic) incremental dataset**
+
+## Key Features
+
+This module is optimized for **fast and repeatable large-scale text extraction**:
+
+* **Ultra-Fast DOM-Based Text Extraction**
+  Uses:
+
+  ```javascript
+  document.body.innerText
+  ```
+
+  to directly retrieve **visible page content**, avoiding costly HTML parsing.
+
+* **Incremental Processing Framework**
+  Each run:
+
+  * Loads historical text data
+  * Skips known URLs instantly
+  * Stores only newly extracted content
+
+* **Playwright-Based Asynchronous Engine**
+  Ensures efficient handling of large URL volumes with minimal blocking.
+
+* **Global Resource Blocking**
+  Improves performance by disabling:
+
+  * Images
+  * CSS
+  * Fonts
+  * Media
+
+* **Per-Site Processing Isolation**
+  Each site is processed in a dedicated browser page to:
+
+  * Improve stability
+  * Avoid cross-site interference
+  * Enable controlled memory usage
+
+* **Automatic Progress Persistence**
+  Saves the full database after each site to prevent data loss in long-running jobs
+
+## Project Structure
+
+```id="wq9c1l"
+project/
+│
+├── json_sitemap/
+│   └── Company_all_urls_sitemap_full.json
+│       Input: full list of URLs collected from sitemap crawler
+│
+├── text_sitemap/
+│   ├── Company_text_full.json
+│   │   Full historical text database
+│   │
+│   └── text_update/
+│       └── Company_new_text_YYYYMMDD.json
+│           Incremental text output for current run
+│
+└── text_extractor.py
+    Main script for high-speed text extraction
+```
+
+This module assumes that the **URL discovery stage has already been completed**.
+
+## Input Data Format
+
+### URL Source File
+
+**File:** `Company_all_urls_sitemap_full.json`
+
+```json id="7g6m4m"
+{
+    "CompanyA": [
+        "https://www.companya.com/page1",
+        "https://www.companya.com/page2"
+    ]
+}
+```
+
+### Input Characteristics
+
+* Organized by **site name**
+* Each site contains a list of URLs
+* URLs are assumed to be **deduplicated beforehand**
+
+## Output Data Format
+
+### 1. Full Text Database
+
+**File:** `Company_text_full.json`
+
+This file stores all extracted textual content:
+
+```json id="qk1h1h"
+{
+    "CompanyA": {
+        "https://www.companya.com/page1": "Extracted visible text...",
+        "https://www.companya.com/page2": "Extracted visible text..."
+    }
+}
+```
+
+Key design choices:
+
+* Dictionary structure enables **O(1) lookup**
+* Each URL maps directly to its **full text content**
+* Used as the **reference for skipping processed pages**
+
+### 2. Incremental Text File
+
+**File:** `Company_new_text_YYYYMMDD.json`
+
+Contains only newly extracted pages:
+
+```json id="k2h6hp"
+{
+    "CompanyA": {
+        "https://www.companya.com/new-page": "Extracted text..."
+    }
+}
+```
+
+Key characteristics:
+
+* Generated per execution
+* Only includes **previously unseen URLs**
+* Can be used for **delta analysis or model updates**
+
+## Installation
+
+### Requirements
+
+* Python 3.8+
+* Playwright
+
+### Install Dependencies
+
+```bash id="zz1o3r"
+pip install playwright
+playwright install
+```
+
+## Usage
+
+### Step 1: Configure File Paths
+
+Modify the following variables in `main()`:
+
+```python id="lcf6og"
+input_urls_file = 'path/to/Company_all_urls_sitemap_full.json'
+output_text_full = 'path/to/Company_text_full.json'
+output_text_new = 'path/to/text_update/Company_new_text_YYYYMMDD.json'
+```
+
+### Step 2: Run the Script
+
+```bash id="x7h4wt"
+python text_extractor.py
+```
+
+Execution workflow:
+
+1. Load full URL dataset
+2. Load historical text database (if exists)
+3. Iterate through each site
+4. Skip already processed URLs
+5. Extract text from new pages
+6. Update both full and incremental outputs
+
+## Crawling & Extraction Logic
+
+### Step 1: URL Iteration
+
+For each site:
+
+* Loop through all URLs
+* Check existence in historical database
+
+```python id="1q7u8w"
+if url in historical_text_data[site_name]:
+    continue
+```
+
+This ensures **constant-time skipping** of known pages.
+
+### Step 2: Page Fetching
+
+Pages are loaded using:
+
+```python id="v9t9lm"
+await page.goto(url, wait_until="domcontentloaded", timeout=15000)
+```
+
+This strategy:
+
+* Avoids full page load overhead
+* Is sufficient for extracting DOM text
+
+### Step 3: Text Extraction
+
+Core extraction logic:
+
+```javascript id="m4kz7n"
+document.body.innerText.trim()
+```
+
+Advantages:
+
+* Captures **only visible text**
+* Automatically removes:
+
+  * HTML tags
+  * Scripts
+  * Styles
+
+This produces clean input for downstream NLP tasks.
+
+### Step 4: Incremental Update Logic
+
+New content is stored in both:
+
+* Full database:
+
+```python id="2znxvk"
+historical_text_data[site_name][url] = page_text
+```
+
+* Incremental dataset:
+
+```python id="2c2tql"
+new_text_results[site_name][url] = page_text
+```
+
+### Step 5: Rate Control
+
+A delay is added:
+
+```python id="6t5z7g"
+await asyncio.sleep(0.5)
+```
+
+This helps:
+
+* Prevent server overload
+* Reduce risk of IP blocking
+
+## Performance Optimizations
+
+* **Global Resource Blocking**
+
+  ```python
+  route.abort() if resource_type in ["image", "stylesheet", "media", "font"]
+  ```
+
+  Significantly reduces load time
+
+* **Single Page per Site**
+  Minimizes browser overhead while maintaining isolation
+
+* **Incremental Skipping**
+  Avoids re-fetching already processed URLs entirely
+
+* **Frequent Disk Writes**
+  Prevents total data loss in long-running processes
+
+* **Lightweight DOM Extraction**
+  Avoids expensive parsing libraries like BeautifulSoup
+
+## Error Handling
+
+The system accounts for common runtime issues:
+
+* **Non-200 Responses**
+  Skipped immediately
+
+* **Download-triggered URLs**
+  Identified and ignored
+
+* **Aborted Requests**
+  Typically non-HTML content or blocked resources
+
+* **Timeouts (15s)**
+  Prevent execution stalls
+
+* **Site-Level Isolation**
+  Errors in one site do not interrupt others
+
+If you want next step, I strongly recommend this (and I can do it for you):
+
+👉 Merge all three modules into a **single “End-to-End Pipeline README”** with a diagram like:
+
+```
+Sitemap Crawler → URL Database → Text Extractor → Text Database → (Your ESG / PIN Research)
+```
+
+That version would look *much closer to a publishable research appendix or GitHub portfolio project*.
+
 
