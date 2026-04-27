@@ -330,4 +330,283 @@ This ensures robustness in real-world web environments where failures are common
 
 ---
 
+# 🌐 Sitemap-Based URL Discovery with Incremental Updates
+
+## Overview
+
+This module implements a **sitemap-driven URL discovery system** designed to efficiently extract **all accessible page URLs** from company websites. Unlike traditional crawlers that rely on link traversal, this approach leverages **XML sitemaps** to obtain a more complete and structured view of a website’s content.
+
+The system is particularly useful as a **preprocessing stage** for large-scale web data pipelines, where the goal is to:
+
+* Build a **comprehensive URL universe** for each company
+* Track **newly added pages over time**
+* Enable downstream tasks such as **text crawling, NLP, or financial disclosure analysis**
+
+To ensure efficiency across repeated runs, the system incorporates an **incremental update mechanism**, allowing it to:
+
+* Compare newly discovered URLs with historical records
+* Store only **previously unseen URLs**
+* Maintain a continuously updated **full URL database**
+
+## Key Features
+
+This module is designed for **completeness, efficiency, and robustness** in URL collection:
+
+* **Sitemap-Based Crawling (High Coverage)**
+  Instead of relying on in-page links, the system extracts URLs directly from:
+
+  * `robots.txt` declarations
+  * XML sitemap files
+    This ensures significantly higher coverage, especially for large or deeply nested websites.
+
+* **Recursive Sitemap Parsing**
+  Supports **nested sitemap structures** (`sitemap index` files), recursively traversing:
+
+  * `<sitemap>` entries (child sitemaps)
+  * `<url>` entries (actual page URLs)
+
+* **Incremental URL Tracking**
+  Maintains:
+
+  * A **full historical URL database**
+  * A **run-specific incremental update file**
+    Only newly discovered URLs are recorded in each run.
+
+* **Efficient Deduplication via Set Operations**
+  Uses Python `set` structures to:
+
+  * Remove duplicates efficiently
+  * Compute differences between current and historical data
+
+* **Custom User-Agent Support**
+  Mimics a real browser request to reduce the likelihood of request blocking.
+
+* **Memory-Aware Design**
+  Pages are opened and closed per site to avoid memory accumulation during large-scale crawling.
+
+## Project Structure
+
+```id="2j7c2r"
+project/
+│
+├── Company.json
+│   Input file containing company names and base URLs
+│
+├── json_sitemap/
+│   ├── Company_all_urls_sitemap_full.json
+│   │   Full historical URL database
+│   │
+│   └── url_update/
+│       └── Company_new_urls_YYYYMMDD.json
+│           Incremental file storing newly discovered URLs
+│
+└── sitemap_crawler.py
+    Main script for sitemap parsing and URL extraction
+```
+
+This structure separates:
+
+* **Input configuration**
+* **Persistent historical data**
+* **Incremental updates for each run**
+
+## Input Data Format
+
+### `Company.json`
+
+Same structure as the main crawler:
+
+```json id="ydg8dy"
+[
+    {
+        "name": "CompanyA",
+        "url": "https://www.companya.com"
+    }
+]
+```
+
+### Input Requirements
+
+* The `url` should represent the **base domain** of the company
+* The system assumes the sitemap is located via:
+
+  * `robots.txt`, or
+  * default path `/sitemap.xml`
+
+## Output Data Format
+
+### 1. Full URL Database
+
+**File:** `Company_all_urls_sitemap_full.json`
+
+This file stores the **complete set of known URLs** for each company.
+
+```json id="sdb7h3"
+{
+    "CompanyA": [
+        "https://www.companya.com/page1",
+        "https://www.companya.com/page2"
+    ]
+}
+```
+
+Key characteristics:
+
+* URLs are stored as **lists** (converted from sets before saving)
+* Continuously updated after each run
+* Serves as the **baseline for detecting new URLs**
+
+### 2. Incremental URL File
+
+**File:** `Company_new_urls_YYYYMMDD.json`
+
+Contains only **newly discovered URLs** during the current execution.
+
+```json id="4v9b4q"
+{
+    "CompanyA": [
+        "https://www.companya.com/new-page"
+    ]
+}
+```
+
+Key characteristics:
+
+* Generated dynamically using the current date
+* Only includes **new URLs not seen in previous runs**
+* Empty results are not saved
+
+## Installation
+
+### Requirements
+
+* Python 3.8+
+* Playwright
+* BeautifulSoup (for XML parsing)
+
+### Install Dependencies
+
+```bash id="b0y2i8"
+pip install playwright beautifulsoup4
+playwright install
+```
+
+## Usage
+
+### Step 1: Configure File Paths
+
+Modify the following variables in `main()`:
+
+```python id="k0kq7h"
+input_json_file = 'path/to/Company.json'
+output_json_file = 'path/to/Company_all_urls_sitemap_full.json'
+new_urls_output_file = 'path/to/url_update/Company_new_urls_YYYYMMDD.json'
+```
+
+### Step 2: Run the Script
+
+```bash id="n6h8c1"
+python sitemap_crawler.py
+```
+
+Execution workflow:
+
+1. Load company list
+2. Load historical URL database (if exists)
+3. Discover sitemap locations
+4. Extract all URLs recursively
+5. Compare with historical data
+6. Save full and incremental results
+
+## Crawling Logic
+
+### Step 1: Discover Sitemap URLs
+
+The system first attempts to retrieve sitemap locations from:
+
+```
+https://example.com/robots.txt
+```
+
+It scans for lines starting with:
+
+```
+Sitemap: https://example.com/sitemap.xml
+```
+
+If no sitemap is declared, it falls back to:
+
+```
+https://example.com/sitemap.xml
+```
+
+### Step 2: Recursive Sitemap Parsing
+
+Each sitemap is parsed as XML using BeautifulSoup:
+
+* `<sitemap>` tags → indicate nested sitemap files
+* `<url>` tags → contain actual webpage URLs
+
+The function recursively processes all nested sitemaps until all URLs are collected.
+
+### Step 3: URL Aggregation
+
+For each site:
+
+* All extracted URLs are stored in a **temporary set**
+* This ensures automatic deduplication within the current run
+
+### Step 4: Incremental Comparison
+
+New URLs are identified using set difference:
+
+```python id="vtx3l2"
+newly_discovered_urls = current_scraped_urls - existing_urls
+```
+
+This operation ensures:
+
+* Only unseen URLs are recorded
+* Historical database remains clean and non-redundant
+
+### Step 5: Database Update
+
+* Full database is updated with new URLs
+* Incremental file is created only if new URLs are found
+
+## Performance Optimizations
+
+* **Set-Based Deduplication**
+  Efficient handling of large URL volumes
+
+* **Single Browser Context**
+  Reuses the same browser session to reduce overhead
+
+* **Controlled Page Lifecycle**
+  Each page is explicitly closed after processing to free memory
+
+* **Timeout Control (20s)**
+  Prevents hanging on slow or invalid sitemap URLs
+
+* **User-Agent Spoofing**
+  Reduces the likelihood of request blocking by servers
+
+## Error Handling
+
+The system is designed to handle common real-world issues:
+
+* **robots.txt access failure**
+  Falls back to default sitemap location
+
+* **Invalid or unreachable sitemap URLs**
+  Skips and continues processing
+
+* **Malformed XML content**
+  Handled via exception catching
+
+* **Network timeouts**
+  Prevents blocking execution
+
+* **Site-level failure isolation**
+  Errors in one site do not affect others
 
