@@ -5,37 +5,35 @@ Here below I will show the details of 2 methods and start with ITER SEARCH.
 
 ----
 
-# 🌐 Iterative Website Crawler with Incremental Text Storage
+# 🌐 Iterative Search with Incremental Text Storage
 
 ## Overview
 
-This project implements an **asynchronous, domain-restricted web crawler** using Playwright for large-scale extraction of **plain textual content from company websites**. The primary objective is to build and maintain a continuously growing **textual database of corporate web disclosures**, while minimizing redundant computation through an **incremental update framework**.
+This project implements an **asynchronous, domain-restricted web scraper** using Playwright for large-scale extraction of **textual content from company websites**. The primary objective is to build and maintain a continuously growing **textual database of corporate web texts**, while minimizing redundant computation through an **incremental update framework**.
 
-Unlike naive crawlers that repeatedly scrape the same pages, this system is designed to:
+Unlike naive ones that repeatedly scrape the same pages, this system is designed to:
 
-* **Persist historical crawl results**
+* **Persist historical results**
 * **Detect and skip previously processed URLs**
 * **Only store newly discovered content in each run**
 
-This makes it particularly suitable for **longitudinal data collection tasks**, such as tracking changes in corporate disclosures, ESG communication, or investor-facing information over time.
-
-The crawler follows a **Breadth-First Search (BFS)** strategy with a configurable depth limit, ensuring structured and controlled exploration of each website while avoiding excessive crawling.
+This makes it particularly suitable for **longitudinal data collection tasks**, such as tracking changes. The scraping logic follows a **Breadth-First Search (BFS)** strategy with a configurable depth limit, ensuring structured and controlled exploration of each website while avoiding excessive searching.
 
 ## Key Features
 
-This crawler includes several design choices aimed at balancing **efficiency, scalability, and robustness**:
+This code includes several design choices aimed at balancing **efficiency, scalability, and robustness**:
 
 * **Asynchronous Execution (Playwright-based)**
-  The crawler leverages `asyncio` and Playwright’s async API to efficiently handle page navigation and content extraction without blocking execution.
+  The main functiion leverages `asyncio` and Playwright’s async API to efficiently handle page navigation and content extraction without blocking execution.
 
 * **Incremental Crawling Architecture**
   A dual-database system is used:
 
-  * A **full historical database** storing all previously crawled pages
+  * A **full historical database** storing all previously pages
   * A **run-specific incremental database** storing only newly discovered pages
     This significantly reduces redundant I/O and computation in repeated runs.
 
-* **Domain-Constrained Crawling**
+* **Domain-Constrained**
   The crawler strictly limits traversal to the **same domain as the starting URL**, preventing unintended expansion into external sites.
 
 * **Content-Focused Extraction**
@@ -44,10 +42,6 @@ This crawler includes several design choices aimed at balancing **efficiency, sc
 * **Resource Optimization**
   Non-essential resources (images, CSS, fonts, media) are blocked at the network level to:
 
-  * Reduce bandwidth usage
-  * Improve crawling speed
-  * Lower memory overhead
-
 * **Duplicate Avoidance Mechanisms**
   Two sets are maintained:
 
@@ -55,9 +49,9 @@ This crawler includes several design choices aimed at balancing **efficiency, sc
   * `enqueued`: prevents duplicate queue insertion
     This ensures efficient traversal without redundant operations.
 
-## Project Structure
+## Method files Structure
 
-The project is organized to clearly separate **input configuration**, **persistent storage**, and **runtime outputs**:
+This method is organized to clearly separate **input configuration**, **persistent storage**, and **runtime outputs**:
 
 ```
 project/
@@ -74,21 +68,21 @@ project/
 │           Incremental output file generated for each run,
 │           containing only newly discovered pages.
 │
-└── crawler.py
-    Main script implementing crawling logic, data handling,
+└── iter_search.py
+    Main script implementing the full logic for data handling,
     and incremental update workflow.
 ```
 
-This structure allows the crawler to be executed repeatedly over time while maintaining a clean separation between **historical data** and **newly collected data**.
+This structure allows to be executed repeatedly over time while maintaining a clean separation between **historical data** and **newly collected data**.
 
 ## Input Data Format
 
 ### `Company.json`
 
-The crawler expects a JSON file containing a list of target websites. Each entry represents a company and includes:
+The code expects a JSON file containing a list of target websites. Each entry represents a company and includes:
 
 * `name`: Identifier used as a key in the output database
-* `url`: The starting point for crawling (homepage or portal page)
+* `url`: The starting point for further steps (homepage or portal page)
 
 Example:
 
@@ -109,17 +103,16 @@ Example:
 
 * URLs should be **fully qualified** (including `https://`)
 * Each company should have a **unique name** to avoid overwriting data
-* The crawler assumes that each URL represents a **distinct domain root**
 
 ## Output Data Format
 
-The system produces two types of outputs: a **persistent full dataset** and a **run-specific incremental dataset**.
+The system produces two types of outputs: a **full dataset** and a **run-specific incremental dataset**.
 
 ### 1. Full Historical Database
 
 **File:** `Company_all_iter_full.json`
 
-This file serves as the **master database**, continuously updated after each run. It stores all previously crawled pages and their extracted text content.
+This file serves as the **master database**, continuously updated after each run. It stores all previously pages and their extracted text content.
 
 Structure:
 
@@ -131,12 +124,6 @@ Structure:
     }
 }
 ```
-
-Key characteristics:
-
-* Organized by **company name**
-* Each URL maps directly to its **plain text content**
-* Used as the **reference for deduplication** in future runs
 
 ### 2. Incremental Update File
 
@@ -154,19 +141,13 @@ Structure:
 }
 ```
 
-Key characteristics:
-
-* Generated with a **date-based filename**
-* Includes only **previously unseen URLs**
-* Empty company entries are automatically removed for cleanliness
-
 This design enables efficient tracking of **what changed between runs**, which is critical for time-series analysis.
 
 ## Installation
 
 ### Requirements
 
-To run the crawler, the following environment is required:
+To run the code, the following environment is required:
 
 * **Python 3.8 or higher**
 * **Playwright** (for browser automation)
@@ -210,7 +191,7 @@ Make sure:
 Run the crawler using:
 
 ```bash
-python crawler.py
+python iter_search.py
 ```
 
 During execution, the script will:
@@ -220,21 +201,15 @@ During execution, the script will:
 3. Crawl each website sequentially
 4. Update both full and incremental datasets
 
-## Crawling Logic
+## Main Logic
 
 ### Breadth-First Search (BFS) Strategy
 
-The crawler uses a BFS approach to systematically explore each website:
+The code uses a BFS approach to systematically explore each website:
 
 * Starts from the **homepage**
 * Expands outward level by level
 * Stops when reaching `max_depth` (default: 2)
-
-This ensures:
-
-* Controlled crawl scope
-* Better coverage of high-level pages
-* Reduced risk of deep, irrelevant traversal
 
 ### URL Processing Workflow
 
@@ -243,7 +218,6 @@ For each page:
 1. Check if the URL has already been visited
 2. Determine whether it exists in the historical database
 3. If new:
-
    * Extract visible text
    * Store in both full and incremental databases
 4. Extract all anchor (`<a>`) links
@@ -252,7 +226,7 @@ For each page:
 
 ### Link Filtering Rules
 
-The crawler excludes:
+The logic excludes:
 
 * Non-navigable links:
 
@@ -268,7 +242,7 @@ The crawler excludes:
   * Media (`.mp4`, `.zip`, `.exe`)
   * Stylesheets (`.css`)
 
-This ensures the crawler focuses only on **HTML pages with meaningful textual content**.
+This ensures the code focuses only on **HTML pages with meaningful textual content**.
 
 ### Domain Restriction
 
@@ -278,24 +252,17 @@ Only links that match the **original domain** are followed. This is enforced by 
 urlparse(url).netloc
 ```
 
-This prevents:
-
-* Crawling external websites
-* Data contamination across domains
-* Uncontrolled crawl expansion
-
 ## Performance Optimizations
 
 Several optimizations are implemented to improve runtime efficiency:
 
 * **Resource Blocking**
-  The crawler intercepts network requests and blocks:
+  The logic intercepts network requests and blocks:
 
   * Images
   * Stylesheets
   * Fonts
   * Media
-    This significantly reduces load time and bandwidth usage.
 
 * **Lightweight Page Load Strategy**
   Uses `wait_until="domcontentloaded"` instead of full page load to speed up navigation.
@@ -314,7 +281,7 @@ Several optimizations are implemented to improve runtime efficiency:
 
 ## Error Handling
 
-The crawler includes basic handling for common runtime issues:
+The code includes basic handling for common runtime issues:
 
 * **Download-triggered pages**
   Skipped when navigation results in file downloads rather than HTML content
@@ -326,9 +293,11 @@ The crawler includes basic handling for common runtime issues:
   Prevents the crawler from hanging on slow or unresponsive pages
 
 * **General exceptions**
-  Logged and skipped to allow the crawler to continue processing
+  Logged and skipped to allow the code to continue processing
 
-This ensures robustness in real-world web environments where failures are common.
+## (Final Tip)
+
+Actually, a non-updated version is also done since the homepage may change overtime and the structure is changing. If this happenns, runnning fully scrape is essential as well. The upload of the code will be prcessed in later future update.
 
 ---
 
