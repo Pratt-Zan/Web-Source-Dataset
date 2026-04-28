@@ -10,7 +10,7 @@ async def get_sitemaps_from_robots(page, base_url):
     robots_url = f"{base_url.rstrip('/')}/robots.txt"
     sitemaps = []
     
-    print(f"  --> 正在检查 robots.txt: {robots_url}")
+    print(f"  --> Checking robots.txt: {robots_url}")
     try:
         response = await page.goto(robots_url, timeout=15000)
         if response and response.ok:
@@ -20,12 +20,12 @@ async def get_sitemaps_from_robots(page, base_url):
                     sitemap_url = line.split(':', 1)[1].strip()
                     sitemaps.append(sitemap_url)
     except Exception as e:
-        print(f"  ⚠️ 读取 robots.txt 失败或超时: {e}")
+        print(f"  ⚠️ Loading robots.txt fail or timeout: {e}")
 
     # 没找到就用默认的
     if not sitemaps:
         sitemaps.append(f"{base_url.rstrip('/')}/sitemap.xml")
-        print(f"  --> 未找到声明，使用默认: {sitemaps[0]}")
+        print(f"  --> No robots txt found, use default: {sitemaps[0]}")
 
     return sitemaps
 
@@ -34,7 +34,7 @@ async def fetch_sitemap_urls(page, sitemap_url, collected_urls=None):
     if collected_urls is None:
         collected_urls = set()
 
-    print(f"    --> 正在解析 XML: {sitemap_url}")
+    print(f"    --> Analyzing XML: {sitemap_url}")
     try:
         response = await page.goto(sitemap_url, wait_until="domcontentloaded", timeout=20000)
         if not response or not response.ok:
@@ -58,7 +58,7 @@ async def fetch_sitemap_urls(page, sitemap_url, collected_urls=None):
                 collected_urls.add(loc.text.strip())
 
     except Exception as e:
-        print(f"  ❌ 抓取异常 {sitemap_url}: {e}")
+        print(f"  ❌ Exception in {sitemap_url}: {e}")
 
     return collected_urls
 
@@ -74,7 +74,7 @@ async def main():
         with open(input_json_file, 'r', encoding='utf-8') as f:
             portals = json.load(f)
     except Exception as e:
-        print(f"读取 json 失败: {e}")
+        print(f"Loading json fail: {e}")
         return
 
     # 1. 加载历史数据（如果存在）
@@ -83,17 +83,16 @@ async def main():
         try:
             with open(output_json_file, 'r', encoding='utf-8') as f:
                 historical_data = json.load(f)
-            print(f"📂 成功加载历史数据库: 包含 {len(historical_data)} 个站点的记录。")
+            print(f"📂 History loading successful: {len(historical_data)} sites found.")
         except Exception as e:
-            print(f"⚠️ 读取历史全量库失败，将作为首次爬取执行: {e}")
+            print(f"⚠️ History loading faul，rescrape and cover: {e}")
     else:
-        print("📂 未发现历史数据，本次将作为首次全量爬取。")
+        print("📂 No History found，new list will be created.")
 
-    # 用于存放结果的全集 { "SiteName": set() }
-    # 先把历史数据放进去（并转为 set 方便后续去重求差集）
+    # 先把历史数据放进去并转为 set 方便后续去重求差集
     final_results = {site: set(urls) for site, urls in historical_data.items()}
     
-    # 仅仅用于存放“本次新增”的 URL { "SiteName": list() }
+    # 仅仅用于存放“本次新增”的 URL
     new_results_only = {}
 
     async with async_playwright() as p:
@@ -107,7 +106,7 @@ async def main():
             base_url = portal.get('url', '')
             if not base_url: continue
 
-            print(f"\n🚀 [开始任务] {site_name} ({base_url})")
+            print(f"\n🚀 [Task Begin] {site_name} ({base_url})")
 
             # 确保全集里有这个站点的初始化
             if site_name not in final_results:
@@ -137,12 +136,12 @@ async def main():
                 # 如果有新增的，就记录到增量字典里
                 if newly_discovered_urls:
                     new_results_only[site_name] = list(newly_discovered_urls)
-                    print(f"✅ [完成] {site_name}: 发现 {len(newly_discovered_urls)} 个【新增】URL。(站点总数: {len(final_results[site_name])})")
+                    print(f"✅ [Finished] {site_name}: {len(newly_discovered_urls)} new urls founded。(Total count: {len(final_results[site_name])})")
                 else:
-                    print(f"✅ [完成] {site_name}: 没有发现新 URL。(站点总数保持为: {len(final_results[site_name])})")
+                    print(f"✅ [Finished] {site_name}: No new url found. (Total count: {len(final_results[site_name])})")
             
             except Exception as e:
-                print(f"❌ [整个站点处理失败] {site_name}: {e}")
+                print(f"❌ [Process failed] {site_name}: {e}")
             
             finally:
                 # 爬完当前网站，立刻关掉标签页，释放内存
@@ -154,7 +153,7 @@ async def main():
     # 准备保存：把全集 set 转回列表 list
     json_ready_results = {site: list(urls) for site, urls in final_results.items()}
 
-    # 保存 1: 更新全量数据库 (供下个月对比使用)
+    # 保存 1: 更新全量数据库
     with open(output_json_file, 'w', encoding='utf-8') as f:
         json.dump(json_ready_results, f, ensure_ascii=False, indent=4)
         
@@ -162,11 +161,11 @@ async def main():
     if new_results_only:
         with open(new_urls_output_file, 'w', encoding='utf-8') as f:
             json.dump(new_results_only, f, ensure_ascii=False, indent=4)
-        print(f"\n🎉 任务全部结束！")
-        print(f"📁 历史全量库已更新: {output_json_file}")
-        print(f"✨ 发现更新！新增的 URL 已单独保存至: {new_urls_output_file}")
+        print(f"\n🎉 Job finished！")
+        print(f"📁 History is updated: {output_json_file}")
+        print(f"✨ New record found！Newly urls is added into: {new_urls_output_file}")
     else:
-        print(f"\n🎉 任务全部结束！所有站点都没有新增内容。全量库未发生本质变化。")
+        print(f"\n🎉 Job finished！Nothing changed.")
 
 if __name__ == "__main__":
     asyncio.run(main())
