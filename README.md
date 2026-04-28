@@ -68,7 +68,7 @@ project/
 │           Incremental output file generated for each run,
 │           containing only newly discovered pages.
 │
-└── iter_search.py
+└── iter_update_full.py
     Main script implementing the full logic for data handling,
     and incremental update workflow.
 ```
@@ -371,7 +371,7 @@ project/
 │       └── Company_new_urls_YYYYMMDD.json
 │           Incremental file storing newly discovered URLs
 │
-└── sitemap_url.py
+└── sitemap_by_robots.py
     Main script for sitemap parsing and URL extraction
 ```
 
