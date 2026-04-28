@@ -144,13 +144,10 @@ async def main():
                 print(f"❌ [Process failed] {site_name}: {e}")
             
             finally:
-                # 爬完当前网站，立刻关掉标签页，释放内存
                 await page.close()
 
-        # 全部爬完后关掉浏览器
         await browser.close()
 
-    # 准备保存：把全集 set 转回列表 list
     json_ready_results = {site: list(urls) for site, urls in final_results.items()}
 
     # 保存 1: 更新全量数据库
