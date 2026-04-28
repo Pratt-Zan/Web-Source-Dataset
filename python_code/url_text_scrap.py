@@ -71,7 +71,6 @@ async def main():
         for site_name, urls in all_urls_data.items():
             print(f"\n🚀 [Begin] {site_name} (Total urls count for processing: {len(urls)})")
             
-            # 初始化字典层级
             if site_name not in historical_text_data:
                 historical_text_data[site_name] = {}
             if site_name not in new_text_results:
@@ -100,7 +99,6 @@ async def main():
                         new_text_results[site_name][url] = page_text
                         new_count_this_site += 1
                     
-                    # 稍微停顿，防止请求过于密集被封禁
                     await asyncio.sleep(0.5)
 
             except Exception as e:
