@@ -5,27 +5,25 @@ from datetime import datetime
 from playwright.async_api import async_playwright
 
 async def fetch_page_text_fast(page, url):
-    """访问页面并使用 innerText 提取纯文本内容"""
     try:
         # domcontentloaded 比 load 快得多，非常适合只读取 DOM 文本
         response = await page.goto(url, wait_until="domcontentloaded", timeout=15000)
         
         if not response or not response.ok:
-            print(f"    ⚠️ 页面访问失败或非 200 状态码: {url}")
+            print(f"    ⚠️ Load failed or non 200 code: {url}")
             return None
 
-        # 🚀 采用你的原生 JS 方法：只提取网页可见纯文本，过滤掉标签
         page_text = await page.evaluate("() => document.body ? document.body.innerText.trim() : ''")
         return page_text
 
     except Exception as e:
         error_msg = str(e)
         if "Download is starting" in error_msg:
-            print(f"    ⚠️ 跳过下载文件 (不作为网页解析): {url}")
+            print(f"    ⚠️ Skip download: {url}")
         elif "net::ERR_ABORTED" in error_msg:
-            print(f"    ⚠️ 页面中止加载 (可能是非HTML资源): {url}")
+            print(f"    ⚠️ Page stopped for Non-HTML: {url}")
         else:
-            print(f"    ❌ 请求失败 {url}: {e}")
+            print(f"    ❌ Failed login in {url}: {e}")
         return None
 
 async def main():
@@ -37,27 +35,26 @@ async def main():
     current_date = datetime.now().strftime('%Y%m%d')
     output_text_new = f'C:\\Users\\Pratt\\Desktop\\HKUST-RA\\Database Construction\\text_sitemap\\text_update\\Company_new_text_{current_date}.json'
     
-    # 1. 读取全量 URL 列表 (驱动源)
+    # 1. 读取全量 URL 列表
     try:
         with open(input_urls_file, 'r', encoding='utf-8') as f:
             all_urls_data = json.load(f)
-        print(f"📂 成功加载 URL 列表: 包含 {len(all_urls_data)} 个站点。")
+        print(f"📂 Successful in loading: {len(all_urls_data)} sites founded.")
     except Exception as e:
-        print(f"❌ 读取全量 URL 列表失败: {e}")
+        print(f"❌ Fail in loading: {e}")
         return
 
     # 2. 读取历史文本全量库 (用于比对跳过)
-    # 数据结构设计为: { "SiteName": { "https://...": "text content", ... } } 方便 O(1) 极速查找
     historical_text_data = {}
     if os.path.exists(output_text_full):
         try:
             with open(output_text_full, 'r', encoding='utf-8') as f:
                 historical_text_data = json.load(f)
-            print(f"📂 成功加载历史文本数据库，将自动跳过已存在的 URL。")
+            print(f"📂 Loading History successful，and will skip current URL。")
         except Exception as e:
-            print(f"⚠️ 读取历史数据失败，本次将重新抓取: {e}")
+            print(f"⚠️ Loading History failed，rescrape and cover: {e}")
     else:
-        print("📂 未发现历史文本数据，本次将进行【全量初始化抓取】(耗时较长)。")
+        print("📂 No History found，and will process scraping text for base [time demanding].")
 
     # 本月新增的文本结果
     new_text_results = {}
@@ -72,7 +69,7 @@ async def main():
         await context.route("**/*", lambda route: route.abort() if route.request.resource_type in ["image", "stylesheet", "media", "font"] else route.continue_())
 
         for site_name, urls in all_urls_data.items():
-            print(f"\n🚀 [开始任务] {site_name} (待处理 URL 总数: {len(urls)})")
+            print(f"\n🚀 [Begin] {site_name} (Total urls count for processing: {len(urls)})")
             
             # 初始化字典层级
             if site_name not in historical_text_data:
@@ -80,7 +77,6 @@ async def main():
             if site_name not in new_text_results:
                 new_text_results[site_name] = {}
 
-            # 打开当前站点的专用标签页
             page = await context.new_page()
             
             new_count_this_site = 0
@@ -94,7 +90,7 @@ async def main():
                         continue
 
                     # 如果没有，则发起请求
-                    print(f"    --> 正在提取文本: {url}")
+                    print(f"    --> Scraping currently: {url}")
                     page_text = await fetch_page_text_fast(page, url)
                     
                     if page_text:
@@ -108,11 +104,11 @@ async def main():
                     await asyncio.sleep(0.5)
 
             except Exception as e:
-                print(f"❌ [站点处理异常] {site_name}: {e}")
+                print(f"❌ [Exception found] {site_name}: {e}")
             finally:
                 await page.close()
                 
-            print(f"✅ [完成] {site_name}: 新抓取 {new_count_this_site} 个页面，极速跳过 {skip_count_this_site} 个已知页面。")
+            print(f"✅ [Finished] {site_name}: Newly found {new_count_this_site} pages，skipped {skip_count_this_site} pages already existed.")
 
             # （可选）为了防止意外中断导致数据全丢，可以在每个站点爬完后立刻保存一次全量库
             with open(output_text_full, 'w', encoding='utf-8') as f:
@@ -123,9 +119,9 @@ async def main():
     # 4. 保存本月增量文件
     with open(output_text_new, 'w', encoding='utf-8') as f:
         json.dump(new_text_results, f, ensure_ascii=False, indent=4)
-    print(f"\n🎉 任务结束！")
-    print(f"📁 历史全量库已更新: {output_text_full}")
-    print(f"✨ 发现更新！本月新增的 {sum(len(texts) for texts in new_text_results.values())} 条页面文本已单独保存至: {output_text_new}")
+    print(f"\n🎉 Job finished！")
+    print(f"📁 History is updated: {output_text_full}")
+    print(f"✨ Update founded！New adding of {sum(len(texts) for texts in new_text_results.values())} texts being stored to: {output_text_new}")
 
 if __name__ == "__main__":
     asyncio.run(main())
