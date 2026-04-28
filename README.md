@@ -305,13 +305,13 @@ Actually, a non-updated version is also done since the homepage may change overt
 
 ## Overview
 
-This module implements a **sitemap-driven URL discovery system** designed to efficiently extract **all accessible page URLs** from company websites. Unlike traditional crawlers that rely on link traversal, this approach leverages **XML sitemaps** to obtain a more complete and structured view of a website’s content.
+This module implements a **sitemap-driven URL discovery system** designed to efficiently extract **all accessible page URLs** from company websites. Unlike traditional srracper that rely on link traversal, this approach leverages **XML sitemaps** to obtain a more complete and structured view of a website’s content.
 
 The system is particularly useful as a **preprocessing stage** for large-scale web data pipelines, where the goal is to:
 
 * Build a **comprehensive URL universe** for each company
 * Track **newly added pages over time**
-* Enable downstream tasks such as **text crawling, NLP, or financial disclosure analysis**
+* Enable downstream tasks for **text extractionn in this task, or even NLP, financial disclosure analysis for other needs**
 
 To ensure efficiency across repeated runs, the system incorporates an **incremental update mechanism**, allowing it to:
 
@@ -323,7 +323,7 @@ To ensure efficiency across repeated runs, the system incorporates an **incremen
 
 This module is designed for **completeness, efficiency, and robustness** in URL collection:
 
-* **Sitemap-Based Crawling (High Coverage)**
+* **Sitemap-Based (High Coverage)**
   Instead of relying on in-page links, the system extracts URLs directly from:
 
   * `robots.txt` declarations
@@ -364,22 +364,16 @@ project/
 │   Input file containing company names and base URLs
 │
 ├── json_sitemap/
-│   ├── Company_all_urls_sitemap_full.json
+│   ├── Company_urls_full.json
 │   │   Full historical URL database
 │   │
 │   └── url_update/
 │       └── Company_new_urls_YYYYMMDD.json
 │           Incremental file storing newly discovered URLs
 │
-└── sitemap_crawler.py
+└── sitemap_url.py
     Main script for sitemap parsing and URL extraction
 ```
-
-This structure separates:
-
-* **Input configuration**
-* **Persistent historical data**
-* **Incremental updates for each run**
 
 ## Input Data Format
 
@@ -387,7 +381,7 @@ This structure separates:
 
 Same structure as the main crawler:
 
-```json id="ydg8dy"
+```json
 [
     {
         "name": "CompanyA",
@@ -408,11 +402,11 @@ Same structure as the main crawler:
 
 ### 1. Full URL Database
 
-**File:** `Company_all_urls_sitemap_full.json`
+**File:** `Company_urls_full.json`
 
 This file stores the **complete set of known URLs** for each company.
 
-```json id="sdb7h3"
+```json
 {
     "CompanyA": [
         "https://www.companya.com/page1",
@@ -420,12 +414,6 @@ This file stores the **complete set of known URLs** for each company.
     ]
 }
 ```
-
-Key characteristics:
-
-* URLs are stored as **lists** (converted from sets before saving)
-* Continuously updated after each run
-* Serves as the **baseline for detecting new URLs**
 
 ### 2. Incremental URL File
 
@@ -441,11 +429,7 @@ Contains only **newly discovered URLs** during the current execution.
 }
 ```
 
-Key characteristics:
-
-* Generated dynamically using the current date
-* Only includes **new URLs not seen in previous runs**
-* Empty results are not saved
+Hint: Empty results are not saved
 
 ## Installation
 
@@ -457,7 +441,7 @@ Key characteristics:
 
 ### Install Dependencies
 
-```bash id="b0y2i8"
+```bash
 pip install playwright beautifulsoup4
 playwright install
 ```
@@ -468,7 +452,7 @@ playwright install
 
 Modify the following variables in `main()`:
 
-```python id="k0kq7h"
+```python
 input_json_file = 'path/to/Company.json'
 output_json_file = 'path/to/Company_all_urls_sitemap_full.json'
 new_urls_output_file = 'path/to/url_update/Company_new_urls_YYYYMMDD.json'
@@ -476,7 +460,7 @@ new_urls_output_file = 'path/to/url_update/Company_new_urls_YYYYMMDD.json'
 
 ### Step 2: Run the Script
 
-```bash id="n6h8c1"
+```bash
 python sitemap_crawler.py
 ```
 
@@ -489,7 +473,7 @@ Execution workflow:
 5. Compare with historical data
 6. Save full and incremental results
 
-## Crawling Logic
+## Logic
 
 ### Step 1: Discover Sitemap URLs
 
@@ -531,36 +515,14 @@ For each site:
 
 New URLs are identified using set difference:
 
-```python id="vtx3l2"
+```python
 newly_discovered_urls = current_scraped_urls - existing_urls
 ```
-
-This operation ensures:
-
-* Only unseen URLs are recorded
-* Historical database remains clean and non-redundant
 
 ### Step 5: Database Update
 
 * Full database is updated with new URLs
 * Incremental file is created only if new URLs are found
-
-## Performance Optimizations
-
-* **Set-Based Deduplication**
-  Efficient handling of large URL volumes
-
-* **Single Browser Context**
-  Reuses the same browser session to reduce overhead
-
-* **Controlled Page Lifecycle**
-  Each page is explicitly closed after processing to free memory
-
-* **Timeout Control (20s)**
-  Prevents hanging on slow or invalid sitemap URLs
-
-* **User-Agent Spoofing**
-  Reduces the likelihood of request blocking by servers
 
 ## Error Handling
 
@@ -572,16 +534,11 @@ The system is designed to handle common real-world issues:
 * **Invalid or unreachable sitemap URLs**
   Skips and continues processing
 
-* **Malformed XML content**
-  Handled via exception catching
-
 * **Network timeouts**
   Prevents blocking execution
 
 * **Site-level failure isolation**
   Errors in one site do not affect others
-
-  Here is the **third module README (Text Extraction Layer)**, written in the same detailed, consistent style as the previous two. This one fits as the **final stage in your pipeline (URL → Text)**.
 
 ---
 
@@ -589,18 +546,12 @@ The system is designed to handle common real-world issues:
 
 ## Overview
 
-This module implements a **high-performance text extraction engine** that converts a pre-collected set of URLs into a structured **plain-text database**. It is designed as the **final stage of a multi-step web data pipeline**, where:
+This module is the following step for the upper part, which implements a **high-performance text extraction engine** that converts a pre-collected set of URLs into a structured **plain-text database**. It is designed as the **final stage of a multi-step web data pipeline**, where:
 
 1. URLs are first discovered (e.g., via sitemap crawling)
 2. Then processed here to extract **human-readable textual content**
 
-The system emphasizes **speed, scalability, and incremental updates**, making it suitable for large-scale data collection tasks such as:
-
-* Corporate disclosure analysis
-* ESG / sustainability text mining
-* Financial communication research
-* Longitudinal website monitoring
-
+The system emphasizes **speed, scalability, and incremental updates**, making it suitable for large-scale data collection task.
 A key design goal is to avoid redundant work. Therefore, the system maintains a **persistent historical text database**, allowing it to:
 
 * Skip already processed URLs in **O(1) time**
@@ -612,7 +563,6 @@ A key design goal is to avoid redundant work. Therefore, the system maintains a 
 This module is optimized for **fast and repeatable large-scale text extraction**:
 
 * **Ultra-Fast DOM-Based Text Extraction**
-  Uses:
 
   ```javascript
   document.body.innerText
@@ -639,11 +589,7 @@ This module is optimized for **fast and repeatable large-scale text extraction**
   * Media
 
 * **Per-Site Processing Isolation**
-  Each site is processed in a dedicated browser page to:
-
-  * Improve stability
-  * Avoid cross-site interference
-  * Enable controlled memory usage
+  Each site is processed in a dedicated browser page
 
 * **Automatic Progress Persistence**
   Saves the full database after each site to prevent data loss in long-running jobs
@@ -654,7 +600,7 @@ This module is optimized for **fast and repeatable large-scale text extraction**
 project/
 │
 ├── json_sitemap/
-│   └── Company_all_urls_sitemap_full.json
+│   └── Company_urls_full.json
 │       Input: full list of URLs collected from sitemap crawler
 │
 ├── text_sitemap/
@@ -665,7 +611,7 @@ project/
 │       └── Company_new_text_YYYYMMDD.json
 │           Incremental text output for current run
 │
-└── text_extractor.py
+└── url_text_scrape.py
     Main script for high-speed text extraction
 ```
 
@@ -677,7 +623,7 @@ This module assumes that the **URL discovery stage has already been completed**.
 
 **File:** `Company_all_urls_sitemap_full.json`
 
-```json id="7g6m4m"
+```json
 {
     "CompanyA": [
         "https://www.companya.com/page1",
@@ -686,21 +632,13 @@ This module assumes that the **URL discovery stage has already been completed**.
 }
 ```
 
-### Input Characteristics
-
-* Organized by **site name**
-* Each site contains a list of URLs
-* URLs are assumed to be **deduplicated beforehand**
-
 ## Output Data Format
 
 ### 1. Full Text Database
 
-**File:** `Company_text_full.json`
-
 This file stores all extracted textual content:
 
-```json id="qk1h1h"
+```json
 {
     "CompanyA": {
         "https://www.companya.com/page1": "Extracted visible text...",
@@ -709,19 +647,11 @@ This file stores all extracted textual content:
 }
 ```
 
-Key design choices:
-
-* Dictionary structure enables **O(1) lookup**
-* Each URL maps directly to its **full text content**
-* Used as the **reference for skipping processed pages**
-
 ### 2. Incremental Text File
-
-**File:** `Company_new_text_YYYYMMDD.json`
 
 Contains only newly extracted pages:
 
-```json id="k2h6hp"
+```json
 {
     "CompanyA": {
         "https://www.companya.com/new-page": "Extracted text..."
@@ -729,11 +659,7 @@ Contains only newly extracted pages:
 }
 ```
 
-Key characteristics:
-
-* Generated per execution
-* Only includes **previously unseen URLs**
-* Can be used for **delta analysis or model updates**
+Only includes **previously unseen URLs**. Can be used for **delta analysis or model updates**.
 
 ## Installation
 
@@ -744,7 +670,7 @@ Key characteristics:
 
 ### Install Dependencies
 
-```bash id="zz1o3r"
+```bash
 pip install playwright
 playwright install
 ```
@@ -755,16 +681,16 @@ playwright install
 
 Modify the following variables in `main()`:
 
-```python id="lcf6og"
-input_urls_file = 'path/to/Company_all_urls_sitemap_full.json'
+```python
+input_urls_file = 'path/to/Company_urls_full.json'
 output_text_full = 'path/to/Company_text_full.json'
 output_text_new = 'path/to/text_update/Company_new_text_YYYYMMDD.json'
 ```
 
 ### Step 2: Run the Script
 
-```bash id="x7h4wt"
-python text_extractor.py
+```bash
+python url_text_scrape.py
 ```
 
 Execution workflow:
@@ -785,44 +711,26 @@ For each site:
 * Loop through all URLs
 * Check existence in historical database
 
-```python id="1q7u8w"
+```python
 if url in historical_text_data[site_name]:
     continue
 ```
-
-This ensures **constant-time skipping** of known pages.
 
 ### Step 2: Page Fetching
 
 Pages are loaded using:
 
-```python id="v9t9lm"
+```python
 await page.goto(url, wait_until="domcontentloaded", timeout=15000)
 ```
-
-This strategy:
-
-* Avoids full page load overhead
-* Is sufficient for extracting DOM text
 
 ### Step 3: Text Extraction
 
 Core extraction logic:
 
-```javascript id="m4kz7n"
+```javascrip
 document.body.innerText.trim()
 ```
-
-Advantages:
-
-* Captures **only visible text**
-* Automatically removes:
-
-  * HTML tags
-  * Scripts
-  * Styles
-
-This produces clean input for downstream NLP tasks.
 
 ### Step 4: Incremental Update Logic
 
@@ -830,50 +738,15 @@ New content is stored in both:
 
 * Full database:
 
-```python id="2znxvk"
+```python
 historical_text_data[site_name][url] = page_text
 ```
 
 * Incremental dataset:
 
-```python id="2c2tql"
+```python
 new_text_results[site_name][url] = page_text
 ```
-
-### Step 5: Rate Control
-
-A delay is added:
-
-```python id="6t5z7g"
-await asyncio.sleep(0.5)
-```
-
-This helps:
-
-* Prevent server overload
-* Reduce risk of IP blocking
-
-## Performance Optimizations
-
-* **Global Resource Blocking**
-
-  ```python
-  route.abort() if resource_type in ["image", "stylesheet", "media", "font"]
-  ```
-
-  Significantly reduces load time
-
-* **Single Page per Site**
-  Minimizes browser overhead while maintaining isolation
-
-* **Incremental Skipping**
-  Avoids re-fetching already processed URLs entirely
-
-* **Frequent Disk Writes**
-  Prevents total data loss in long-running processes
-
-* **Lightweight DOM Extraction**
-  Avoids expensive parsing libraries like BeautifulSoup
 
 ## Error Handling
 
