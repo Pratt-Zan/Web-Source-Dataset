@@ -60,7 +60,7 @@ project/
 │   Input file containing company names and their homepage URLs.
 │
 ├── json_iter/
-│   ├── Company_all_iter_full.json
+│   ├── Company_iter_full.json
 │   │   Persistent full database storing all historical crawl results.
 │   │
 │   └── text_update/
@@ -110,7 +110,7 @@ The system produces two types of outputs: a **full dataset** and a **run-specifi
 
 ### 1. Full Historical Database
 
-**File:** `Company_all_iter_full.json`
+**File:** `Company_iter_full.json`
 
 This file serves as the **master database**, continuously updated after each run. It stores all previously pages and their extracted text content.
 
@@ -191,7 +191,7 @@ Make sure:
 Run the crawler using:
 
 ```bash
-python iter_search.py
+python iter_update_full.py
 ```
 
 During execution, the script will:
@@ -461,7 +461,7 @@ new_urls_output_file = 'path/to/url_update/Company_new_urls_YYYYMMDD.json'
 ### Step 2: Run the Script
 
 ```bash
-python sitemap_crawler.py
+python sitemap_by_robots.py
 ```
 
 Execution workflow:
@@ -621,7 +621,7 @@ This module assumes that the **URL discovery stage has already been completed**.
 
 ### URL Source File
 
-**File:** `Company_all_urls_sitemap_full.json`
+**File:** `Company_urls_full.json`
 
 ```json
 {
