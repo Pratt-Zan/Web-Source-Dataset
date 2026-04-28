@@ -57,7 +57,6 @@ async def crawl_site(browser, start_url, site_name, max_depth, history_db, new_d
             # 如果是新页面，则提取并保存纯文本内容
             if not is_known:
                 page_text = await page.evaluate("() => document.body ? document.body.innerText.trim() : ''")
-                # 按照架构二的字典格式存储 { "url": "text" }
                 history_db[current_url] = page_text
                 new_db[current_url] = page_text
                 new_count += 1
@@ -113,7 +112,6 @@ async def main():
         return
 
     # 2. 读取历史文本全量库 (用于比对跳过)
-    # 数据结构: { "SiteName": { "https://...": "text content", ... } }
     historical_text_data = {}
     if os.path.exists(output_text_full):
         try:
